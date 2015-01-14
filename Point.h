@@ -17,6 +17,8 @@ class Point {
         Point(const Point& p);
         Point(GLfloat x, GLfloat y, GLfloat z);
         
+        static GLfloat distance(const Point& a, const Point& b);
+        
         GLfloat getX() const;
         GLfloat getY() const;
         GLfloat getZ() const;
@@ -25,6 +27,10 @@ class Point {
         void set(const Point& p);
         void set(const Vector& v);
         void set(Point& p);
+        
+        void setX(GLfloat newX);
+        void setY(GLfloat newY);
+        void setZ(GLfloat newZ);
         
         Point operator+ (const Vector& v) const;
         Point operator- (const Vector& v) const;

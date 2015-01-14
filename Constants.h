@@ -19,6 +19,7 @@
 #define PI 3.14159265
 #define COLOR_SQUARES 1
 #define MOVING_SPEED 0.1
+#define LIGHT_MOVING_SPEED 0.1
 #define MOUSE_SENSITIVITY 0.1
 #define DEBUG 1
 

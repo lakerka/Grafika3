@@ -6,6 +6,8 @@
  */
 
 #include "Vector.h"
+#include "MathUtils.h"
+#include "Constants.h"
 
 #include <cmath>
 #include <iostream>
@@ -53,6 +55,22 @@ void Vector::normalize() {
     }
 }
 
+
+GLfloat Vector::getAngleInDegrees(const Vector& v1, const Vector& v2) {
+    GLfloat angleInRadians = getAngleInRadians(v1, v2);
+    return MathUtils::radToDeg(angleInRadians);
+}
+
+GLfloat Vector::getAngleInRadians(const Vector& v1, const Vector& v2) {
+    Vector v1Copy = v1.getNormalized();
+    Vector v2Copy = v2.getNormalized();
+    GLfloat angleInRadians = (GLfloat)acos(v1Copy.dotProduct(v2Copy));
+    if (angleInRadians > PI) {
+        return 2.0*PI-angleInRadians;
+    }
+    return angleInRadians;
+}
+
 void Vector::set(GLfloat x, GLfloat y, GLfloat z) {
     this->x = x;
     this->y = y;
@@ -91,19 +109,12 @@ GLfloat Vector::getZ() const {
     return this->z;
 }
 
-GLfloat abs(GLfloat f) {
-    if (f < 0) {
-        return -f;    
-    }
-    return f;
-}
-
 bool Vector::compareWithError(Vector& v) const {
     GLfloat error = 0.1;
     
-    GLfloat xDiff = abs(x - v.getX()); 
-    GLfloat yDiff = abs(y - v.getY()); 
-    GLfloat zDiff = abs(z - v.getZ()); 
+    GLfloat xDiff = MathUtils::abs(x - v.getX()); 
+    GLfloat yDiff = MathUtils::abs(y - v.getY()); 
+    GLfloat zDiff = MathUtils::abs(z - v.getZ()); 
 
     return xDiff < error && yDiff < error && zDiff < error;
 }

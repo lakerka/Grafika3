@@ -6,6 +6,8 @@
  */
 
 #include "Point.h"
+#include "MathUtils.h"
+#include <cmath>
 
 Point::Point() {
     init(0.0, 0.0, 0.0);
@@ -17,6 +19,12 @@ Point::Point(const Point& p) {
 
 Point::Point(GLfloat x, GLfloat y, GLfloat z) {
     init(x, y, z);
+}
+
+GLfloat Point::distance(const Point& a, const Point& b) {
+    return sqrt(MathUtils::abs(MathUtils::sqr(a.getX() - b.getX())
+            + MathUtils::sqr(a.getY() - b.getY())
+            + MathUtils::sqr(a.getZ()- b.getZ())));
 }
 
 void Point::set(GLfloat x, GLfloat y, GLfloat z) {
@@ -35,6 +43,18 @@ void Point::set(const Vector& v) {
 
 void Point::set(Point& p) {
     set(p.x, p.y, p.z);
+}
+
+void Point::setX(GLfloat newX) {
+    this->x = newX;
+}
+
+void Point::setY(GLfloat newY) {
+    this->y = newY;
+}
+
+void Point::setZ(GLfloat newZ) {
+    this->z = newZ;
 }
 
 void Point::init(GLfloat x, GLfloat y, GLfloat z) {

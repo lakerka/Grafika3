@@ -7,6 +7,10 @@
 
 #include "Triangle.h"
 #include "Vector.h"
+#include "Utils.h"
+
+#include <iostream>
+using namespace std;
 
 Triangle::Triangle() {
     lowerLeft.set(0.0, 0.0, 0.0);
@@ -43,16 +47,23 @@ void Triangle::draw() const {
     glEnd();
 }
 
-void Triangle::drawCylindric(GLfloat radius, GLfloat height, GLsizei slices, GLsizei stacks) const {
+void Triangle::drawCylindric(const Point& sphereColor, const Point& cylinderColor,
+        GLUquadric* qobj, 
+        GLfloat cylinderRadius, GLsizei cylinderSlices, GLsizei cylinderStacks,
+        GLfloat sphereRadius, GLsizei sphereSlices, GLsizei sphereStacks) const {
     
-//    gluCylinder(qobj, radius, radius, height, slices, stacks);
+    glColor3f(cylinderColor.getX(), cylinderColor.getY(), cylinderColor.getZ());
+    Utils::drawCylinder(lowerLeft, upperCenter, qobj, cylinderRadius, 
+            Point::distance(lowerLeft, upperCenter), cylinderSlices, cylinderStacks);
+    Utils::drawCylinder(upperCenter, lowerRight, qobj, cylinderRadius, 
+            Point::distance(upperCenter, lowerRight), cylinderSlices, cylinderStacks);
+    Utils::drawCylinder(lowerRight, lowerLeft, qobj, cylinderRadius, 
+            Point::distance(lowerRight, lowerLeft), cylinderSlices, cylinderStacks);
     
-//    glBegin(GL_TRIANGLES); 
-//    createVertex(this->lowerLeft);
-//    createVertex(this->upperCenter);
-//    createVertex(this->lowerRight);
-//    glEnd();
-    
+    glColor3f(sphereColor.getX(), sphereColor.getY(), sphereColor.getZ());
+    Utils::drawSphere(lowerLeft, qobj, sphereRadius, sphereSlices, sphereStacks);
+    Utils::drawSphere(upperCenter, qobj, sphereRadius, sphereSlices, sphereStacks);
+    Utils::drawSphere(lowerRight, qobj, sphereRadius, sphereSlices, sphereStacks); 
 }
 
 Point Triangle::getLowerLeft() const {

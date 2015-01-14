@@ -31,6 +31,11 @@ public:
     GLfloat dotProduct (const Vector& v) const;
     Vector crossProduct (const Vector& v) const;
 
+    //gets angle between two vectors
+    static GLfloat getAngleInDegrees(const Vector& v1, const Vector& v2);
+    static GLfloat getAngleInRadians(const Vector& v1, const Vector& v2);
+
+    
     void set(GLfloat x, GLfloat y, GLfloat z);
     void set(const Vector& v);
     void set(Vector& v);

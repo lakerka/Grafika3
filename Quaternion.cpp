@@ -8,6 +8,7 @@
 #include "Quaternion.h"
 #include "Vector.h"
 #include "Utils.h"
+#include "MathUtils.h"
 #include <math.h>
 
 Quaternion::Quaternion () : r(1), x(0), y(0), z(0) {
@@ -89,7 +90,7 @@ void Quaternion::toMatrix (GLfloat matrix[]) const {
 
 Quaternion Quaternion::fromAxisAndAngle(const Vector& v, GLfloat angleInDegrees) {
     angleInDegrees = angleInDegrees * 0.5f;
-    GLfloat angleInRadians = Utils::degToRad(angleInDegrees);
+    GLfloat angleInRadians = MathUtils::degToRad(angleInDegrees);
     Vector normalizedVector(v);
     normalizedVector.normalize();
     GLfloat r = cos(angleInRadians);

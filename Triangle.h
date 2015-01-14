@@ -28,7 +28,10 @@ public:
     virtual ~Triangle();
     
     void draw() const;
-    void drawCylindric(GLfloat radius, GLfloat height, GLsizei slices, GLsizei stacks) const;
+    void drawCylindric(const Point& sphereColor, const Point& cylinderColor,
+        GLUquadric* qobj, 
+        GLfloat cylinderRadius, GLsizei cylinderSlices, GLsizei cylinderStacks,
+        GLfloat sphereRadius, GLsizei sphereSlices, GLsizei sphereStacks) const;
     
     Point getLowerLeft() const;
     Point getUpperCenter() const;
