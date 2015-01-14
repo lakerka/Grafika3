@@ -20,15 +20,25 @@
 #include "Vector.h"
 #include "Camera.h"
 #include "MathUtils.h"
+#include <cmath>	
 #include <GL/glut.h>
-#include <cmath>	// OpenGL Graphics Utility Library
+#include <SOIL/SOIL.h>
 
 using namespace std;
 
 enum Direction { LEFT, RIGHT, UP, DOWN};
 
 const GLint CYLINDRIC_TYPE = 1;
+const GLint TEXTURED_TYPE = 2;
 
+Point lights[3];
+Vector lightsDir[3];
+        
+int selectedLight = 0;
+
+GLsizei windowW, windowH;
+
+/*movement and camera related*/
 char moveLeftKey = 'a';
 char moveRightKey = 'd';
 char moveForwardKey = 'w';
@@ -39,17 +49,13 @@ char moveLightDownKey = '2';
 char moveLightLeftKey = '4';
 char moveLightRightKey = '6';
 
-Point lights[3];
-int selectedLight = 0;
-
-int keyState[500];
-
-GLUquadric* qobj;
 Camera eyeCamera;
-GLsizei windowW, windowH;
+int keyState[500];
 GLfloat facingHAngle, facingVAngle; 
 GLfloat movingSpeed = MOVING_SPEED;
 
+/*cylinder related*/
+GLUquadric* qobj;
 Point sphereColor(red);
 GLfloat sphereRadius = 0.2;
 GLint sphereSlices = 10;
@@ -60,8 +66,14 @@ GLfloat cylinderRadius = 0.1;
 GLint cylinderSlices = 10;
 GLint cylinderSlacks = 10;
 
+Point cylindricBallCenter(7.0, 3.0, 13.0);
+Point texturedBallCenter(13.0, 3.0, 7.0);
 
+/*texture related*/
+GLuint textureId;
+GLenum DEFAULT_TEXTURE_WRAP = GL_CLAMP;
 
+/*other*/
 GLfloat aspect = 1.0;
 GLfloat zOffset = 0.0;
 
@@ -120,6 +132,7 @@ ostream& operator<< (ostream& os, const Point& p) {
     return os;
 }
 
+
 void drawAxis(const Vector& v, GLfloat lineLen) {
     Vector normalizedVect(v);
     normalizedVect.normalize();
@@ -140,6 +153,7 @@ void drawXYZAxis(GLfloat lineLen) {
     glColor3f(cayan); 
     drawAxis(Vector(0.0, 0.0, 1.0), lineLen);
 }
+
 
 void drawHorizontalSlab(GLfloat startX, GLfloat y, GLfloat startZ, GLfloat slabW, 
         GLfloat slabH) {
@@ -186,6 +200,7 @@ void drawWalls(GLfloat startX, GLfloat startY, GLfloat startZ, GLsizei width,
         GLsizei height) {
     glColor3f(lightGrey2);
     drawVerticalSlab(startX, startY, startZ, width, height, true);
+    glColor3f(lightGrey1);
     drawVerticalSlab(startX, startY, startZ, width, height, false);
 }
 
@@ -198,6 +213,7 @@ void drawDirectionAndUpAxis(const Camera& camera, GLfloat lineLen) {
     glColor3f(red);
     drawAxis(Vector(up.getX(), up.getY(), up.getZ()), lineLen);
 }
+
 
 void turnCamera(Camera& camera, GLfloat hAngle, GLfloat vAngle) {
     GLfloat vAngleInRad = MathUtils::degToRad(vAngle);
@@ -272,6 +288,7 @@ void movementTracker(int value) {
     glutPostRedisplay();
 }
 
+
 void onKeyUp(unsigned char key, int x, int y) {  
     keyState[key] = false; // Set the state of the current key to not pressed  
 }
@@ -332,6 +349,28 @@ void onMouseEvent(int button, int state, int x, int y) {
     }
 }
 
+void drawTexturedPentagon() {
+    int v;
+    GLfloat ang;
+    GLfloat vertexAngle = MathUtils::degToRad(360.0)/5.0;  
+    GLfloat angleOffset = MathUtils::degToRad(54.0);
+
+    //reset color
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glEnable(GL_TEXTURE_2D);
+    glBegin (GL_POLYGON);
+    GLfloat k1 = 6.0;
+    GLfloat k2 = 3.5;
+    for (v = 0; v < 5; v++)  {                  
+        ang = v * vertexAngle - angleOffset;
+        
+        glTexCoord2d(-cos(ang)/k1*k2+0.5, -sin(ang)/k1*k2+0.5);
+        glVertex2f(cos(ang), sin(ang));
+    }
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+}
+
 void drawSimplePentagon(const Point& pentagonColor) {
     glColor3f(pentagonColor.getX(), pentagonColor.getY(), pentagonColor.getZ());
     int v;
@@ -350,6 +389,8 @@ void drawSimplePentagon(const Point& pentagonColor) {
 void drawPentagon(const Point& pentagonColor, GLint type) {
     if (type == 0) {
         drawSimplePentagon(pentagonColor);
+    }else if (type == TEXTURED_TYPE) {
+        drawTexturedPentagon();
     }
 }
 
@@ -385,6 +426,8 @@ void drawTriangles(const Point& triangleColor, GLfloat pentagonDistToConer,
             t.drawCylindric(sphereColor, cylinderColor, qobj,
                        cylinderRadius, cylinderSlices, cylinderSlacks,
                        sphereRadius, sphereSlices, sphereSlacks);
+        }else  if (type == TEXTURED_TYPE) {
+            t.drawTextured();
         }else {
             t.draw();
         }
@@ -425,12 +468,30 @@ void drawSimpleSquare(const Point& squareColor, GLfloat squareSide) {
     glEnd();
 }
 
+void drawTexturedSquare(GLfloat squareSide) {
+    //reset color
+    glColor3f(1.0f, 1.0f, 1.0f);
+    GLfloat x = squareSide/2.0;
+    glEnable(GL_TEXTURE_2D);
+    glBegin(GL_QUADS);
+    //clock-wise
+//    glNormal3f(0.0, 0.0, 1.0);
+    glTexCoord2d(1.0, 1.0); glVertex3f(-x, -squareSide, zOffset);
+    glTexCoord2d(1.0, 0); glVertex3f(-x, 0.0f, zOffset);
+    glTexCoord2d(0, 0); glVertex3f(x, 0.0f, zOffset);
+    glTexCoord2d(0, 1.0); glVertex3f(x, -squareSide, zOffset);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+}
+
 void drawSquare(const Point& squareColor, GLfloat squareSide, 
         int type) {
     if (type == CYLINDRIC_TYPE) {
         drawCylindricSquare(cylinderColor, squareSide, qobj, cylinderRadius,
                 cylinderSlices, cylinderSlacks);
-    }else {
+    }else if (type == TEXTURED_TYPE) {
+        drawTexturedSquare(squareSide);
+    }else {       
         drawSimpleSquare(squareColor, squareSide);
     }
 }
@@ -516,15 +577,13 @@ void drawHalf(const Point& triangleColor, const Point& squareColor,
     }
 }
 
-void drawBall(const Point& triangleColor, const Point& squareColor, 
+void drawBall(const Point& center, const Point& triangleColor, const Point& squareColor, 
         const Point& pentagonColor, int type) {
     glPushMatrix();
 
-    glTranslatef(10.0, 3.0, 10.0);
-
     //move sphere to center
     GLfloat sphereRadius = 4.86;
-    glTranslatef(0.0, 0.0, sphereRadius/2);
+    glTranslatef(center.getX(), center.getY(), center.getZ() + sphereRadius/2.0);
 
     glPushMatrix();
     drawHalf(triangleColor, squareColor, pentagonColor, type);
@@ -539,6 +598,7 @@ void drawBall(const Point& triangleColor, const Point& squareColor,
     glPopMatrix();
 }
 
+
 void initQuadric() {
   qobj = gluNewQuadric();
   gluQuadricNormals(qobj, GLU_SMOOTH);
@@ -548,6 +608,7 @@ void drawCylinder() {
 
   gluCylinder(qobj, 1.0, 1.0, 5.0, 15, 5);
 }
+
 
 void shadowTransform(const GLfloat plane[], const GLfloat light[]) {
     GLfloat m[16];
@@ -562,38 +623,35 @@ void shadowTransform(const GLfloat plane[], const GLfloat light[]) {
     glMultMatrixf(m);
 }
 
-void drawShadow(const GLfloat plane[], const GLfloat light[]) {
+void drawShadow(const Point& ballCenter, const GLfloat plane[], const GLfloat light[]) {
+    Point colors[] = {cylinderColor, sphereColor};
+    cylinderColor.set(black);
+    sphereColor.set(black);
     glPushMatrix();
     shadowTransform(plane, light);
-    drawBall(Point(black), Point(black), Point(black), CYLINDRIC_TYPE);
+    drawBall(ballCenter, Point(black), Point(black), Point(black), CYLINDRIC_TYPE);
     glPopMatrix();
+    cylinderColor.set(colors[0]);
+    sphereColor.set(colors[1]);
 }
 
-void drawShadows(const Point& light) {
+void drawShadows(const Point& ballCenter, const Point& light) {
     //if we want to have directional light use 0.0 instead of 1.0
     GLfloat light0[] = {light.getX(), light.getY(), light.getZ(), 1.0};
     
     float yzPlane[] = {1.0, 0.0, 0.0, 0.0};
-    drawShadow(yzPlane, light0);
+    drawShadow(ballCenter, yzPlane, light0);
     
     float yxPlane[] = {0.0, 0.0, 1.0, 0.0};
-    drawShadow(yxPlane, light0);
+    drawShadow(ballCenter, yxPlane, light0);
 }
 
-void drawCube(const Point& center, GLdouble size) {
-    GLfloat halfSize = size/2.0;
-    glPushMatrix();
-    glTranslatef(center.getX(), center.getY(), center.getZ());
-    glutSolidCube(size);
-    glPopMatrix();
-}
 
 void display() {
 
     glMatrixMode (GL_MODELVIEW);
     glLoadIdentity ();
 
-    glClearColor (white,  0);
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     Point cameraPosition = eyeCamera.getPosition();
@@ -614,37 +672,25 @@ void display() {
     drawFloor(0.0, 0.0, 0.0, slabsInWidth, slawbsInHeight, slabWidth, slabHeight);
     drawWalls(-0.01, 0.0, -0.01, slabWidth*slabsInWidth, slabHeight*slawbsInHeight);
     drawXYZAxis(7.0);
-    drawCube(lights[0], 0.5);
-    drawBall(Point(peachpuff), Point(green), Point(red), CYLINDRIC_TYPE);
+    Utils::drawCube(lights[0], 0.5);
+    drawBall(cylindricBallCenter, Point(peachpuff), Point(green), Point(red), CYLINDRIC_TYPE);
+    drawBall(texturedBallCenter, Point(peachpuff), Point(green), Point(red), TEXTURED_TYPE);
     glPopMatrix();
     
-    Point colors[] = {cylinderColor, sphereColor};
-    cylinderColor.set(black);
-    sphereColor.set(black);
-    drawShadows(lights[0]);
-    cylinderColor.set(colors[0]);
-    sphereColor.set(colors[1]);
+    Point light0(lights[0]);
+    GLfloat lightpos[] = {light0.getX(), light0.getY(), light0.getZ(), 1.0};
+    glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
+    drawShadows(cylindricBallCenter, lights[0]);
     
-//    Point p1(15.0, 1.0, 16.0);
-//    Point p2(15.5, 3.0, 16.5);
-//    Point p3(16.0, 3.0, 17.0);
-//    Triangle t(p1, p2, p3);
-//    t.drawCylindric(Point(red), Point(peachpuff), qobj,
-//            0.05, 10, 10,
-//            0.1, 10, 10
-//            ); 
     
-//    Point from(15.0, 1.0, 16.0);
-//    Point to(15.5, 3.0, 16.5);
-//    drawCube(from, 0.1);
-//    drawCube(to, 0.1);
-//    glColor3f(peachpuff);
-//    Utils::drawCylinder(from, to, qobj, 0.3, Point::distance(from, to), 15, 5);
-//    glColor3f(red);
-//    GLint slices = 8;
-//    GLint stacks = 8;
-//    Utils::drawSphere(from, qobj, 0.6, slices, stacks);
-//    Utils::drawSphere(to, qobj, 0.6, slices, stacks);
+//    glPushMatrix();
+//    glTranslatef(5.0, 3, 5.0);
+////    drawTexturedSquare(2.0);
+////    drawTexturedPentagon();
+//    drawFace(Point(black), Point(black), Point(black), TEXTURED_TYPE);
+//    glPopMatrix();
+    
+//    drawTexturedSquare(1.0);
     
     glutSwapBuffers();  
 }
@@ -660,14 +706,49 @@ void reshape(GLsizei w, GLsizei h) {
 void initGL() {
     glMatrixMode (GL_PROJECTION);
     gluPerspective (65, aspect, 1, 100);
-    glClearColor (1, 1, 1, 0);
+    glClearColor (black, 0);
     glEnable (GL_COLOR_MATERIAL);
     glEnable (GL_DEPTH_TEST);
-    initQuadric();
-//    glEnable(GL_LIGHTING);
+    glEnable ( GL_LIGHTING );
+    glEnable(GL_LIGHT0);
+}
+
+void loadTexture(GLuint& textureId, const char* fullPath) {
+    glActiveTexture(GL_TEXTURE0);
+    textureId = SOIL_load_OGL_texture(fullPath, SOIL_LOAD_AUTO,
+            SOIL_CREATE_NEW_ID,
+            SOIL_FLAG_INVERT_Y);
+    if(textureId == 0) {
+        cerr << "SOIL loading error: '" << SOIL_last_result() << "' (" << fullPath << ")" << endl;
+        return;
+    }
+    
+    int imgWidth, imgHeight;
+    unsigned char* img = SOIL_load_image(fullPath, &imgWidth, &imgHeight, NULL, 0);
+
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, imgWidth, imgHeight, 0,  GL_RGB, GL_UNSIGNED_BYTE, img);
+    
+//    SOIL_free_image_data(img);
+    
+    //Unbind texture
+//    glBindTexture( GL_TEXTURE_2D, NULL );
+
+    //Check for error
+    GLenum error = glGetError();
+    if( error != GL_NO_ERROR) {
+        cerr << "Error loading texture: " << gluErrorString( error ) << endl;
+    }
 }
 
 void initVars() {
+    //initialize Quadric for cylinders and spheres
+    initQuadric();
     //set initial position of camera
     eyeCamera.setPosition(Point(15.0, 1.3, 15.0));
     //set initial facing of camera
@@ -675,6 +756,8 @@ void initVars() {
     turnCamera(eyeCamera, facingHAngle, facingVAngle);
     //set initial position of lights
     lights[0].set(15.0, 10.0, 15.0);
+    //initialize texture
+    loadTexture(textureId, "/home/zilva/vu/kompiuterine-grafika/3/t8.jpg");
 }
 
 int main( int argc, char** argv ) {

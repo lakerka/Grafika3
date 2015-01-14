@@ -66,6 +66,22 @@ void Triangle::drawCylindric(const Point& sphereColor, const Point& cylinderColo
     Utils::drawSphere(lowerRight, qobj, sphereRadius, sphereSlices, sphereStacks); 
 }
 
+void Triangle::drawTextured() const {
+    //reset color
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glEnable(GL_TEXTURE_2D);
+    glBegin(GL_TRIANGLES);
+    GLfloat xOffset = -0.27;
+    glTexCoord2d(0.0 + xOffset, 0.0);
+    createVertex(this->lowerLeft);
+    glTexCoord2d(0.8 + xOffset, 1.6);
+    createVertex(this->upperCenter);
+    glTexCoord2d(1.6  +xOffset, 0.0);
+    createVertex(this->lowerRight);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+}
+
 Point Triangle::getLowerLeft() const {
     return lowerLeft;
 }

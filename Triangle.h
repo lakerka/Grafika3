@@ -32,6 +32,7 @@ public:
         GLUquadric* qobj, 
         GLfloat cylinderRadius, GLsizei cylinderSlices, GLsizei cylinderStacks,
         GLfloat sphereRadius, GLsizei sphereSlices, GLsizei sphereStacks) const;
+    void drawTextured() const;
     
     Point getLowerLeft() const;
     Point getUpperCenter() const;

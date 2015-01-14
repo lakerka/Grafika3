@@ -42,6 +42,14 @@ void Utils::drawSphere(const Point& center,
     glPopMatrix();
 }
 
+void Utils::drawCube(const Point& center, GLdouble size) {
+    GLfloat halfSize = size/2.0;
+    glPushMatrix();
+    glTranslatef(center.getX(), center.getY(), center.getZ());
+    glutSolidCube(size);
+    glPopMatrix();
+}
+
 Vector Utils::getRotatedVector(const Vector& axis, GLfloat angle, const Vector& vectorToRotate) {
     
     //rotation is perfomed twice bigger than provided angle, so we shrink the angle

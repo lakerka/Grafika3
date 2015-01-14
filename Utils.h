@@ -22,6 +22,7 @@ public:
     static void drawSphere(const Point& center,
         GLUquadric* qobj, GLfloat radius,
         GLsizei slices, GLsizei stacks);
+    static void drawCube(const Point& center, GLdouble size);
 private:
 };
 
